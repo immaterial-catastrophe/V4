@@ -80,6 +80,7 @@ void setup() {
   Serial.println("Press s to start stimulation task");
   Serial.println("Press p to stop stimulation task");
   Serial.println("Press f to flush-water");
+  Serial.println("Press f1 to flush-saltwater");
   Serial.println("Press x to stop flush");
   Serial.println("Press a for autoreward");
   Serial.print("Probabilty:\t");
@@ -107,6 +108,10 @@ void loop() {
       flush_1();
     }
 
+	if (control_char == 'f1') {			//Flushes out the salt-water line
+      flush_2();
+    }
+	
     if (control_char == 'p') {			//Stops the trial
       end_trial();
     }
@@ -138,6 +143,10 @@ void loop() {
       if (control_char == 'f') {
         flush_1();
       }
+	  
+	  if (control_char == 'f1') {			//Flushes out the salt-water line
+      flush_2();
+	  }
 
       if (control_char == 'p') {			//Stops the trial
         end_trial();
@@ -306,6 +315,25 @@ void reward() {
   digitalWrite(SolPin1, LOW);
 }
 
+void punishment() {
+  
+
+  // PUNSIHMENT SEQUENCE  
+  // go through reward/vacuum solenoid sequence
+  punishmentFlag = 1;
+  digitalWrite(SolPin3, HIGH);    // open solenoid valve for a short time
+  delay(350);                  // 8ms ~= 8uL of reward liquid (on box #4 011811)
+  digitalWrite(SolPin3, LOW);
+  Serial.print(count);
+  Serial.print("\t");
+  Serial.print(millis()-trigTime);
+  Serial.println("\tSalt Water Not Delivered");
+
+
+  //elapTime = stimDur + 1;  // break out of the reward stimulus loop after receiving reward
+
+}
+
 void end_trial() {
   while (1) {
     if (Serial.available()) {
@@ -327,6 +355,21 @@ void flush_1() {
 
       if (control_char == 'x') {
         digitalWrite(SolPin1, LOW);
+        Serial.println("Line Flushed");
+        break;
+      }
+    }
+  }
+}
+
+void flush_2() {
+  digitalWrite(SolPin3, HIGH);
+  while (1) {
+    if (Serial.available()) {
+      byte control_char = Serial.read();
+
+      if (control_char == 'x') {
+        digitalWrite(SolPin3, LOW);
         Serial.println("Line Flushed");
         break;
       }
