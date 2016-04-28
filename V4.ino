@@ -1,7 +1,7 @@
-// Edited and re_written by Tom Vajtay 3/2016
+// Edited and re_written by Tom Vajtay 4/2016
 // Based off of V3_1 code.
 // Designed to support two DRV2605L boards sharing the 0x5A address assuming their outputs are gated with transistors.
-// Also assuming MPR121 had address changed to 0x5D. touch and relese thresholds are 6 and four respectively 
+// Also assuming MPR121 had address changed to 0x5D. touch and relese thresholds are 6 and four respectively
 // And pinouts to control an H-bridge to power the solenoid dispenser.
 
 #include "Adafruit_MPR121.h"
@@ -18,6 +18,7 @@ int y = 9;
 double probability;
 
 bool rew;
+bool pun = true;
 bool first;
 bool timeout;
 bool autorew = false;
@@ -85,15 +86,10 @@ void setup() {
   Serial.println("Press f to flush-water");
   Serial.println("Press g to flush-saltwater");
   Serial.println("Press x to stop flush");
-  Serial.println("Press a for autoreward");
-  Serial.print("Probabilty:\t");
-  Serial.print("\t");
-  probability = (x / (y + 1));
-  Serial.println(probability, DEC);
+  Serial.println("Press a for autoreward ON/OFF");
+  Serial.println("Press b for punishment OFF/ON");
   delay(500);
-  Serial.println("Trial#\tTime\tEvent");
 }
-
 
 void loop() {
 
@@ -107,14 +103,21 @@ void loop() {
       Serial.println(autorew);
     }
 
+    if (control_char == 'b') {
+      pun = !pun;
+      Serial.print("Punishment:\t");
+      Serial.print("\t");
+      Serial.println(pun);
+    }
+
     if (control_char == 'f') {			//Flushes out the water line
       flush_1();
     }
 
-	if (control_char == 'g') {			//Flushes out the salt-water line
+    if (control_char == 'g') {			//Flushes out the salt-water line
       flush_2();
     }
-	
+
     if (control_char == 'p') {			//Stops the trial
       end_trial();
     }
@@ -124,6 +127,10 @@ void loop() {
       Serial.println("Trial Begins");
       trial_start = true;
     }
+  }
+  if (trial_start) {
+    Serial.println();
+    Serial.println("Trial#\tTime\tEvent");
   }
 
   while (trial_start) {
@@ -146,10 +153,10 @@ void loop() {
       if (control_char == 'f') {
         flush_1();
       }
-	  
-	  if (control_char == 'g') {			//Flushes out the salt-water line
-      flush_2();
-	  }
+
+      if (control_char == 'g') {			//Flushes out the salt-water line
+        flush_2();
+      }
 
       if (control_char == 'p') {			//Stops the trial
         end_trial();
@@ -255,21 +262,21 @@ void loop() {
                 Serial.print("\t");
                 Serial.print(firstlick);
                 Serial.println("\tTimeout Lick");
-				punishment();
+                punishment();
                 timeout = true;
                 first = true;
               }
-				else if (stimNum == 2){
-					digitalWrite(stimPin, LOW);
-					digitalWrite(stimPin2, LOW);
-					Serial.print(count);
-					Serial.print("\t");
-					Serial.print(firstlick);
-					Serial.println("\tPunishment Lick");
-					punishment();
-					first = true;
-				}
-				
+              else if (stimNum == 2) {
+                digitalWrite(stimPin, LOW);
+                digitalWrite(stimPin2, LOW);
+                Serial.print(count);
+                Serial.print("\t");
+                Serial.print(firstlick);
+                Serial.println("\tPunishment Lick");
+                punishment();
+                first = true;
+              }
+
             }
             else {
               if (timeout) {
@@ -330,35 +337,27 @@ void reward() {
 }
 
 void punishment() {
-  
 
-  // PUNSIHMENT SEQUENCE  
-  // go through reward/vacuum solenoid sequence
-  punishmentFlag = 1;
-  digitalWrite(SolPin3, HIGH);    // open solenoid valve for a short time
-  delay(350);                  // 8ms ~= 8uL of reward liquid (on box #4 011811)
-  digitalWrite(SolPin3, LOW);
-  Serial.print(count);
-  Serial.print("\t");
-  Serial.print(millis()-trigTime);
-  Serial.println("\tSalt Water Not Delivered");
-
+  if (pun = true) {
+    // PUNSIHMENT SEQUENCE
+    // go through reward/vacuum solenoid sequence
+    punishmentFlag = 1;
+    digitalWrite(SolPin3, HIGH);    // open solenoid valve for a short time
+    delay(350);                  // 8ms ~= 8uL of reward liquid (on box #4 011811)
+    digitalWrite(SolPin3, LOW);
+    Serial.print(count);
+    Serial.print("\t");
+    Serial.print(millis() - trigTime);
+    Serial.println("\tSalt Water Not Delivered");
+  }
 
   //elapTime = stimDur + 1;  // break out of the reward stimulus loop after receiving reward
 
 }
 
 void end_trial() {
-  while (1) {
-    if (Serial.available()) {
-      byte control_char = Serial.read();
-
-      if (control_char == 'r') {
-        count = 0;
-        break;
-      }
-    }
-  }
+  Serial.println();
+  softReset();
 }
 
 void flush_1() {
@@ -444,3 +443,6 @@ boolean checkInterrupt(void) {
   return digitalRead(irqpin);
 }
 
+void softReset(){
+asm volatile ("  jmp 0");
+}
