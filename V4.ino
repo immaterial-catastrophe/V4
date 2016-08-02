@@ -1,8 +1,10 @@
 // Edited and re_written by Tom Vajtay 4/2016
 // Based off of V3_1 code.
-// Designed to support two DRV2605L boards sharing the 0x5A address, address conflict is resolved through the use of an I2C multiplexer at 0x70.
-// Also assuming MPR121 had address changed to 0x5D. Touch and relese thresholds are 5 and 3 respectively and were edited in the MPR121 header file.
-// And pinouts to control an H-bridge to power the solenoid dispensers.
+// Designed to support two DRV2605L boards sharing the 0x5A address, address conflict is resolved through
+// the use of an I2C multiplexer at 0x70.
+// Also assuming MPR121 had address changed to 0x5D. Touch and relese thresholds are 5 and 3 respectively
+// and were edited in the MPR121 header file.
+// Also there is code for pinouts to control an H-bridge to control the solenoid dispensers.
 
 
 #include "Adafruit_MPR121.h"
