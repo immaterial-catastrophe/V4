@@ -67,7 +67,7 @@ void setup() {
   drv.selectLibrary(1);
 
   //MPR121 activation sequence
-  // 0x5D is the MPR121 I2C address on the Bare Touch Board
+  // 0x5D is the MPR121 I2C address
   if (!MPR121.begin(0x5D)) {
     Serial.println("error setting up MPR121");
     switch (MPR121.getError()) {
