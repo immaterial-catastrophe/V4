@@ -2,8 +2,7 @@
 // Based off of V3_1 code.
 // Designed to support two DRV2605L boards sharing the 0x5A address, address conflict is resolved through
 // the use of an I2C multiplexer at 0x70.
-// Also assuming MPR121 had address changed to 0x5D. Touch and relese thresholds are 20 and 10 respectively
-// and were edited in the MPR121 header file.
+// Also assuming MPR121 had address changed to 0x5D.
 // Also there is code for pinouts to control an H-bridge to control the solenoid dispensers.
 
 
@@ -30,7 +29,6 @@ int SolPin1 = 3;         // First input for H-bridge (Fresh Water)
 int SolPin2 = 6;
 int SolPin3 = 8;      // Second input for H-bridge (Salt Water)
 int SolPin4 = 9;
-//int irqpin = 12;          // Touch sensor interrupt pin
 int rewPer = 100;        // Period in ms of reward
 int trials;
 long firstlick;
