@@ -414,7 +414,7 @@ void loop() {
               if (!first) {
                 firstlick = millis() - trigTime;
 
-                if (stimNum == 1) {                   //Only first lick in the 1.5 timeframe will give reaward or punishment
+                if (stimNum == 1) {       //Only first lick in the 1.5 timeframe will give reward or punishment
                   Serial.print(count);
                   Serial.print("\t");
                   Serial.print(firstlick);
@@ -428,9 +428,11 @@ void loop() {
                   Serial.print(count);
                   Serial.print("\t");
                   Serial.print(firstlick);
-                  Serial.println("\tBad Lick");
+                  Serial.println("\tPunishment Lick");
+                  punishment();
                   first = true;
                 }
+
               }
               else if (first & stimNum == 1) {
                 Serial.print(count);
@@ -444,11 +446,11 @@ void loop() {
                 Serial.print(millis() - trigTime);
                 Serial.println("\tLick Bad");
               }
-              elapTime = millis() - stimTime; //Updates the time for the while loop
             }
-
-
           }
+          elapTime = millis() - stimTime; //Updates the time for the while loop
+        }
+      }
 
 
           if (stimNum == 1) {     // If after 1.5 sec trial mouse did not lick for reward, reward given if autoreward is turned on Auto reward works with or without punishment
