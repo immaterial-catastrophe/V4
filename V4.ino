@@ -349,22 +349,18 @@ void loop() {
         digitalWrite(CamPin, HIGH);       // Sends TTL to Master  9
         early(2000);          // The function that detects an early lick in first two seconds of trial
         stimTime = millis();
-        stimNum = 1;
         Serial.print(count);
         Serial.print("\t");
         Serial.print(stimTime - trigTime);
-        Serial.println("\tStim 1");
-
-
         if (random_toggle) {
-          int randNum = random(4);
+          int randNum = random(100);
 
-          if (randNum < 3) {
+          if (randNum < 75) {
             stimNum = 1;
             Serial.println("\tStim 1");     //Stim 1 has a 75% chance of occuring, Stim 2 has a 25% chance of occuring
           }
 
-          else if (randNum > 2) {
+          else if (randNum > 74) {
             stimNum = 2;
             Serial.println("\tStim 2");
           }
