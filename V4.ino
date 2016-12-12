@@ -116,8 +116,8 @@ void setup() {
   Serial.println("Press 5 for stim test");
   Serial.println("Press 6 to stop flush/stim test");
   Serial.println("Press 7 for autoreward, ON(1)/OFF(0)");
-  Serial.println("Press 8 for 2 stimulus with punishment(1) OR 1 stimulus no punishment(0)");
-  Serial.println("Press 9 to toggle either random 2 stimulus, or alternating 2 stimulus");
+  Serial.println("Press 8 for 2 stimulus with punishment(1) OR 2 stimulus no punishment(0)");
+  Serial.println("Press 9 to toggle either random 2 stimulus(75%/25%), or alternating 2 stimulus");
   delay(500);
 }
 
@@ -356,14 +356,51 @@ void loop() {
         Serial.println("\tStim 1");
 
 
+        if (random_toggle) {
+          int randNum = random(4);
+
+          if (randNum < 3) {
+            stimNum = 1;
+            Serial.println("\tStim 1");     //Stim 1 has a 75% chance of occuring, Stim 2 has a 25% chance of occuring
+          }
+
+          else if (randNum > 2) {
+            stimNum = 2;
+            Serial.println("\tStim 2");
+          }
+        }
+
+        else if (!random_toggle) {
+          if (alternator) {
+            stimNum = 1;
+            Serial.println("\tStim 1");
+            alternator = !alternator;
+          }
+          else if (!alternator) {
+            stimNum = 2;
+            Serial.println("\tStim 2");
+            alternator = !alternator;
+          }
+        }
+
         while (elapTime < lickOk) {     //For 1.5 seconds after stim mouse can lick sensor to recieve reward or punishment.
           if (elapTime < stimDur) {
 
             if (stimNum == 1) {
               //for stim1
+
               drv.setWaveform(0, stim_effect1);  // the effect
               drv.setWaveform(1, 0);   // end waveform
               tcaselect(2);
+              drv.go();
+            }
+
+            else if (stimNum == 2) {
+              //for stim2
+
+              drv.setWaveform(0, stim_effect2);  // the effect
+              drv.setWaveform(1, 0);   // end waveform
+              tcaselect(1);
               drv.go();
             }
           }
@@ -386,6 +423,14 @@ void loop() {
                   first = true;
                   reward();
                 }
+
+                else if (stimNum == 2) {
+                  Serial.print(count);
+                  Serial.print("\t");
+                  Serial.print(firstlick);
+                  Serial.println("\tBad Lick");
+                  first = true;
+                }
               }
               else if (first & stimNum == 1) {
                 Serial.print(count);
@@ -393,167 +438,171 @@ void loop() {
                 Serial.print(millis() - trigTime);
                 Serial.println("\tLick Good");
               }
+              else if (first & stimNum == 2) {
+                Serial.print(count);
+                Serial.print("\t");
+                Serial.print(millis() - trigTime);
+                Serial.println("\tLick Bad");
+              }
+              elapTime = millis() - stimTime; //Updates the time for the while loop
+            }
+
+
+          }
+
+
+          if (stimNum == 1) {     // If after 1.5 sec trial mouse did not lick for reward, reward given if autoreward is turned on Auto reward works with or without punishment
+            if (autorew) {
+              if (!rew) {
+                reward();
+              }
             }
           }
-          elapTime = millis() - stimTime; //Updates the time for the while loop
+
+          late(3500);       //For 3.5 secs after LickOk period all licks will be recorded as late, no punishment or reward given.
+          Serial.println("Trial End");
+          count = count + 1;
+          digitalWrite(CamPin, LOW);
+
+          delay(3000);   //Inter Trial Interval of 4 secs
         }
 
 
+        else {
+          count = 1;
+          Serial.println("Session Finished");
+          trial_start = false; //Possibly redundant since end_session does a soft restart
+          end_session();
+        }
       }
 
+    }
 
-      if (stimNum == 1) {     // If after 1.5 sec trial mouse did not lick for reward, reward given if autoreward is turned on Auto reward works with or without punishment
-        if (autorew) {
-          if (!rew) {
-            reward();
+
+
+    void reward() {
+
+      digitalWrite(SolPin1, HIGH);    // open solenoid valve for a short time
+      delay(SolDur);                  // 8ms ~= 8uL of reward liquid (on box #4 011811)
+      digitalWrite(SolPin1, LOW);
+      Serial.print(count);
+      Serial.print("\t");
+      Serial.print(millis() - trigTime);
+      Serial.println("\tWater Delivered");
+    }
+
+    void punishment() {
+
+      digitalWrite(SolPin3, HIGH);    // open solenoid valve for a short time
+      delay(SolDur);                  // 8ms ~= 8uL of punishment liquid
+      digitalWrite(SolPin3, LOW);
+      Serial.print(count);
+      Serial.print("\t");
+      Serial.print(millis() - trigTime);
+      Serial.println("\tSalt Water Delivered");
+    }
+
+
+    void end_session() {
+      Serial.println();
+      delay(500);
+      asm volatile ("  jmp 0");   // Makes the Arduino soft reset
+    }
+
+    void flush_1() {
+      digitalWrite(SolPin1, HIGH);
+      while (1) {
+        if (Serial.available()) {
+          char control_char = Serial.read();
+
+          if (control_char == '6') {
+            digitalWrite(SolPin1, LOW);
+            Serial.println("Line Flushed");
+            break;
+          }
+        }
+      }
+    }
+
+    void flush_2() {
+      digitalWrite(SolPin3, HIGH);
+      while (1) {
+        if (Serial.available()) {
+          char control_char = Serial.read();
+
+          if (control_char == '6') {
+            digitalWrite(SolPin3, LOW);
+            Serial.println("Line Flushed");
+            break;
+          }
+        }
+      }
+    }
+
+    void early(int dur) {
+      long start = millis();
+      while ((millis() - start) < dur) {    //While time passed between start and current time is less than dur
+        if (MPR121.touchStatusChanged()) {
+          //read the touch state from the MPR121
+          MPR121.updateTouchData();
+
+          if (MPR121.isNewTouch(0)) {        //If touched during early period print lick early
+            Serial.print(count);
+            Serial.print("\t");
+            Serial.print(millis() - trigTime);
+            Serial.println("\tLick Early");
+          }
+        }
+      }
+    }
+
+    void late(int dur) {
+      long temp = millis();
+      while ((millis() - temp) < dur) {
+        if (MPR121.touchStatusChanged()) {
+          //read the touch state from the MPR121
+          MPR121.updateTouchData();
+
+          if (MPR121.isNewTouch(0)) {
+            Serial.print(count);
+            Serial.print("\t");
+            Serial.print(millis() - trigTime);
+            Serial.println("\tLick Late");
+          }
+        }
+      }
+    }
+
+    void stim_test() {
+      Serial.println("Stim test start");
+      while (1) {
+        tcaselect(1);
+        drv.setWaveform(0, stim_effect1);  // the effect
+        drv.setWaveform(1, 0);   // end waveform
+        drv.go();
+        delay(500);
+
+        tcaselect(2);
+        drv.setWaveform(0, stim_effect2);  // the effect
+        drv.setWaveform(1, 0);   // end waveform
+        drv.go();
+        delay(500);
+
+        if (Serial.available()) {
+          char control_char = Serial.read();
+          if (control_char == '6') {
+            Serial.println("End");
+            break;
           }
         }
       }
 
-      late(3500);       //For 3.5 secs after LickOk period all licks will be recorded as late, no punishment or reward given.
-      Serial.println("Trial End");
-      count = count + 1;
-      digitalWrite(CamPin, LOW);
-
-      delay(3000);   //Inter Trial Interval of 4 secs
     }
 
+    void tcaselect(uint8_t i) {
+      if (i > 3) return;
 
-    else {
-      count = 1;
-      Serial.println("Session Finished");
-      trial_start = false; //Possibly redundant since end_session does a soft restart
-      end_session();
+      Wire.beginTransmission(0x70);
+      Wire.write(i);
+      Wire.endTransmission();
     }
-  }
-
-}
-
-
-
-void reward() {
-
-  digitalWrite(SolPin1, HIGH);    // open solenoid valve for a short time
-  delay(SolDur);                  // 8ms ~= 8uL of reward liquid (on box #4 011811)
-  digitalWrite(SolPin1, LOW);
-  Serial.print(count);
-  Serial.print("\t");
-  Serial.print(millis() - trigTime);
-  Serial.println("\tWater Delivered");
-}
-
-void punishment() {
-
-  digitalWrite(SolPin3, HIGH);    // open solenoid valve for a short time
-  delay(SolDur);                  // 8ms ~= 8uL of punishment liquid
-  digitalWrite(SolPin3, LOW);
-  Serial.print(count);
-  Serial.print("\t");
-  Serial.print(millis() - trigTime);
-  Serial.println("\tSalt Water Delivered");
-}
-
-
-void end_session() {
-  Serial.println();
-  delay(500);
-  asm volatile ("  jmp 0");   // Makes the Arduino soft reset
-}
-
-void flush_1() {
-  digitalWrite(SolPin1, HIGH);
-  while (1) {
-    if (Serial.available()) {
-      char control_char = Serial.read();
-
-      if (control_char == '6') {
-        digitalWrite(SolPin1, LOW);
-        Serial.println("Line Flushed");
-        break;
-      }
-    }
-  }
-}
-
-void flush_2() {
-  digitalWrite(SolPin3, HIGH);
-  while (1) {
-    if (Serial.available()) {
-      char control_char = Serial.read();
-
-      if (control_char == '6') {
-        digitalWrite(SolPin3, LOW);
-        Serial.println("Line Flushed");
-        break;
-      }
-    }
-  }
-}
-
-void early(int dur) {
-  long start = millis();
-  while ((millis() - start) < dur) {    //While time passed between start and current time is less than dur
-    if (MPR121.touchStatusChanged()) {
-      //read the touch state from the MPR121
-      MPR121.updateTouchData();
-
-      if (MPR121.isNewTouch(0)) {        //If touched during early period print lick early
-        Serial.print(count);
-        Serial.print("\t");
-        Serial.print(millis() - trigTime);
-        Serial.println("\tLick Early");
-      }
-    }
-  }
-}
-
-void late(int dur) {
-  long temp = millis();
-  while ((millis() - temp) < dur) {
-    if (MPR121.touchStatusChanged()) {
-      //read the touch state from the MPR121
-      MPR121.updateTouchData();
-
-      if (MPR121.isNewTouch(0)) {
-        Serial.print(count);
-        Serial.print("\t");
-        Serial.print(millis() - trigTime);
-        Serial.println("\tLick Late");
-      }
-    }
-  }
-}
-
-void stim_test() {
-  Serial.println("Stim test start");
-  while (1) {
-    tcaselect(1);
-    drv.setWaveform(0, stim_effect1);  // the effect
-    drv.setWaveform(1, 0);   // end waveform
-    drv.go();
-    delay(500);
-
-    tcaselect(2);
-    drv.setWaveform(0, stim_effect2);  // the effect
-    drv.setWaveform(1, 0);   // end waveform
-    drv.go();
-    delay(500);
-
-    if (Serial.available()) {
-      char control_char = Serial.read();
-      if (control_char == '6') {
-        Serial.println("End");
-        break;
-      }
-    }
-  }
-
-}
-
-void tcaselect(uint8_t i) {
-  if (i > 3) return;
-
-  Wire.beginTransmission(0x70);
-  Wire.write(i);
-  Wire.endTransmission();
-}
