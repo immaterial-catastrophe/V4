@@ -246,14 +246,14 @@ void loop() {
         Serial.print("\t");
         Serial.print(stimTime - trigTime);
         if (random_toggle) {
-          int randNum = random(0, 6);
+          int randNum = random(4);
 
-          if (randNum <= 3) {
+          if (randNum < 3) {
             stimNum = 1;
-            Serial.println("\tStim 1");
+            Serial.println("\tStim 1");     //Stim 1 has a 75% chance of occuring, Stim 2 has a 25% chance of occuring
           }
 
-          else if (randNum > 3 && randNum <= 6) {
+          else if (randNum > 2) {
             stimNum = 2;
             Serial.println("\tStim 2");
           }
