@@ -11,6 +11,7 @@
 #include "Adafruit_DRV2605.h"  //Haptic Motor library
 #define stim_effect1 47 //Edit this value to change the effect of first motor    (See Waveform Library Effects list for DRV2605L)
 #define stim_effect2 47 //Edit this value to change the effect of the second motor
+#define Inter-trial_interval 4000
 Adafruit_DRV2605 drv;   //Haptic motor intialization
 
 
@@ -415,7 +416,7 @@ void loop() {
       count = count + 1;
       digitalWrite(CamPin, LOW);
 
-      delay(3000);   //Inter Trial Interval of 4 secs
+      delay(Inter-trial_interval);   //Inter Trial Interval delay
     }
 
 
