@@ -1,4 +1,4 @@
-// Edited and re_written by Tom Vajtay 4/2016
+// Edited and re_written by Tom Vajtay 4/2016 Rutgers University
 // Based off of V3_1 code.
 // Designed to support two DRV2605L boards sharing the 0x5A address, address conflict is resolved through
 // the use of an I2C multiplexer at 0x70.
